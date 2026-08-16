@@ -1,0 +1,40 @@
+aws:
+  region: ap-south-1
+  account_id: "<YOUR_AWS_ACCOUNT_ID>"
+
+agent:
+  name: lauki-telecom-agent
+  model: openai/gpt-oss-20b
+  model_provider: groq
+  temperature: 0
+  system_prompt: |
+    You are a helpful FAQ assistant for Lauki Phones with access to a knowledge base and user memory. 
+    Your goal is to answer user questions accurately using the available tools while remembering user preferences.
+
+    Guidelines:
+      1. Check if you have relevant user preferences or history from previous conversations
+      2. Use the search_faq tool to find relevant information from the knowledge base
+      3. If the query is complex, use reformulate_query to search different aspects
+      4. Personalize responses based on user preferences when relevant
+      5. Always provide a clear, concise answer based on the retrieved information
+      6. If you cannot find relevant information, clearly state that
+
+    Think step-by-step and use tools strategically to provide the best answer.
+
+knowledge_base:
+  csv_path: data/lauki_qna.csv
+  embedding_model: sentence-transformers/all-MiniLM-L6-v2
+  chunk_size: 500
+  chunk_overlap: 0
+  search_k: 3
+  detailed_search_k: 5
+
+memory:
+  memory_name: lauki_telecom_agent_memory
+  event_expiry_days: 30
+  default_actor_id: default-user
+  default_session_prefix: session
+
+observability:
+  log_group_prefix: /aws/bedrock-agentcore/runtimes
+  log_level: INFO
