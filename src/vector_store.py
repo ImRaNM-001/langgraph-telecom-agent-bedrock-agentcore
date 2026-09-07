@@ -1,6 +1,7 @@
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
+from langchain_aws import BedrockEmbeddings
 
 from src.config import params, get_csv_path
 from src.data_loader import load_faq_csv
@@ -14,8 +15,12 @@ def get_faq_store() -> FAISS:
     global _faq_store
     if _faq_store is None:
         docs = load_faq_csv(get_csv_path())
-        emb = HuggingFaceEmbeddings(
-            model_name=params.knowledge_base.embedding_model,
+        # emb = HuggingFaceEmbeddings(
+        #     model_name=params.knowledge_base.embedding_model,
+        # )
+        emb = BedrockEmbeddings(
+            model_id=params.knowledge_base.embedding_model,   # "amazon.titan-embed-text-v2:0"
+            region_name=params.aws.region,
         )
         splitter = RecursiveCharacterTextSplitter(
             chunk_size=params.knowledge_base.chunk_size,

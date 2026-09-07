@@ -12,7 +12,7 @@ terraform {
     }
     awscc = {
       source  = "hashicorp/awscc"
-      version = "~> 1.50.0"       # Required: AgentCore Memory is not available in the aws 5.x provider
+      version = "~> 1.96"       # Required: AgentCore Memory is not available in the aws 5.x provider
     }
   }
 }

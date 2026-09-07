@@ -9,7 +9,6 @@ __pycache__/
 logs/
 
 # AgentCore starter toolkit generated files
-.bedrock_agentcore.yaml
 .bedrock_agentcore/
 
 # Terraform

@@ -5,7 +5,7 @@ output "memory_id" {
 
 output "memory_arn" {
   description = "ARN of the AgentCore Memory resource"
-  value       = awscc_bedrockagentcore_memory.agent_memory.arn
+  value = awscc_bedrockagentcore_memory.agent_memory.memory_arn
 }
 
 output "execution_role_arn" {
