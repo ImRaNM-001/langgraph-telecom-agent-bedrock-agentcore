@@ -78,10 +78,12 @@ terraform/
 terraform_*.zip
 mcp/lambda/
 aws/
+scripts/
 awscliv2.zip
 .claude/
 .bedrock_agentcore/
 logs/
+chat.json
 
 *.zip
 *.tar
