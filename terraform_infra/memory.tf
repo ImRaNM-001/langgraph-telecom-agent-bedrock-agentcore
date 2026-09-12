@@ -20,7 +20,7 @@ resource "awscc_bedrockagentcore_memory" "agent_memory" {
       semantic_memory_strategy = {
         name        = "semantic_facts"
         description = "Extracts and stores user facts and preferences for cross-session recall"
-        namespaces  = ["/actors/{actorId}", "/preferences/{actorId}"]
+        namespaces  = ["/preferences/{actorId}"]
       }
     }
   ]
