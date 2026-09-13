@@ -58,9 +58,11 @@ def _invoke_cloud(payload: dict[str, str], runtime_arn: str) -> dict[str, Any]:
     client = boto3.client("bedrock-agentcore", region_name=params.aws.region)
     response = client.invoke_agent_runtime(
         agentRuntimeArn=runtime_arn,
+        runtimeSessionId=payload["session_id"],
         contentType="application/json",
         accept="application/json",
         payload=json.dumps(payload).encode("utf-8"),
+        qualifier="DEFAULT",
     )
     return _read_runtime_response(response)
 
@@ -129,10 +131,12 @@ def _submit_request(status_placeholder: Any) -> None:
             isinstance(value, str) for value in (answer, returned_actor, thread_id)
         ):
             raise RuntimeError("The agent returned an incomplete response.")
-    except Exception:
-        st.session_state["request_error"] = (
-            "Unable to complete the request. Please try again."
-        )
+    except Exception as exp:
+        # st.session_state["request_error"] = (
+        #     "Unable to complete the request. Please try again."
+        # )
+        print(f"INVOKE_AGENT_RUNTIME_ERROR: {exp}", flush=True)
+        st.session_state["request_error"] = f"Request failed: {exp}"
         return
 
     _history().insert(

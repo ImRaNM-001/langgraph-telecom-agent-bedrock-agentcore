@@ -1,0 +1,11 @@
+aws_region = "<YOUR_AWS_REGION>"
+
+aws_account_id = "<YOUR_AWS_ACCOUNT_ID>"
+
+project_name = <YOUR_PROJECT_NAME>                      # ex: "lauki-telecom-agent"
+
+memory_event_expiry_days = <Any_Nummber>           # ex: 30
+
+embedding_model_id = "amazon.titan-embed-text-v2:0"      # source: https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/memory-get-started.html
+
+log_retention_days = <Any_Nummber>                # ex: 14
