@@ -1,6 +1,6 @@
 aws:
   region: ap-south-1
-  account_id: "<YOUR_AWS_ACCOUNT_ID>"
+  account_id: <YOUR_AWS_ACCOUNT_ID>
 
 agent:
   name: lauki-telecom-agent
@@ -23,7 +23,7 @@ agent:
 
 knowledge_base:
   csv_path: data/lauki_qna.csv
-  embedding_model: sentence-transformers/all-MiniLM-L6-v2
+  embedding_model: amazon.titan-embed-text-v2:0     # sentence-transformers/all-MiniLM-L6-v2
   chunk_size: 500
   chunk_overlap: 0
   search_k: 3

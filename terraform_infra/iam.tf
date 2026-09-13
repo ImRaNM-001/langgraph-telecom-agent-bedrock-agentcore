@@ -83,6 +83,13 @@ resource "aws_iam_role_policy" "agent_runtime_execution" {
         Resource = "arn:aws:bedrock-agentcore:${var.aws_region}:${var.aws_account_id}:memory/*"
       },
       {
+        # NEW: FAQ vector store embeds chunks with the Bedrock Titan embedding model
+        Sid      = "BedrockEmbeddingModelInvoke"
+        Effect   = "Allow"
+        Action   = ["bedrock:InvokeModel"]
+        Resource = "arn:aws:bedrock:${var.aws_region}::foundation-model/${var.embedding_model_id}"
+      },
+      {
         # Optional: enable if X-Ray tracing is turned on for the runtime
         Sid    = "XRayTracing"
         Effect = "Allow"

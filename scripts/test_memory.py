@@ -8,17 +8,17 @@ which can only be answered from long-term AgentCore Memory.
 Usage:
     python scripts/test_memory.py
 """
+from src.logging import logger
+from src.config import params, get_secret
 import json
 import sys
+import time
 import uuid
 from pathlib import Path
 
 import boto3
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from src.config import params, get_secret
-from src.logging import logger
 
 
 def invoke_runtime(client, runtime_arn: str, payload: dict, session_id: str) -> dict:
@@ -34,22 +34,31 @@ def invoke_runtime(client, runtime_arn: str, payload: dict, session_id: str) -> 
 def main():
     runtime_arn = get_secret("AGENT_RUNTIME_ARN")
     if not runtime_arn:
-        raise RuntimeError("AGENT_RUNTIME_ARN is not set. Populate .env after `agentcore launch`.")
+        raise RuntimeError(
+            "AGENT_RUNTIME_ARN is not set. Populate .env after `agentcore launch`.")
 
     client = boto3.client("bedrock-agentcore", region_name=params.aws.region)
 
     actor_id = f"memory-test-user-{uuid.uuid4().hex[:8]}"
-    session_1 = f"{params.memory.default_session_prefix}-{uuid.uuid4().hex[:8]}"
-    session_2 = f"{params.memory.default_session_prefix}-{uuid.uuid4().hex[:8]}"
+    # session_1 = f"{params.memory.default_session_prefix}-{uuid.uuid4().hex[:8]}"
+    # session_2 = f"{params.memory.default_session_prefix}-{uuid.uuid4().hex[:8]}"
+    session_1 = str(uuid.uuid4())
+    session_2 = str(uuid.uuid4())
 
     # Turn 1: plant a fact
     logger.info(f"Turn 1 (actor={actor_id}, session={session_1})")
     turn1 = invoke_runtime(
         client, runtime_arn,
-        {"prompt": "My name is Ravi, remember it.", "actor_id": actor_id, "session_id": session_1},
+        {"prompt": "My name is Ravi, remember it.",
+            "actor_id": actor_id, "session_id": session_1},
         session_1,
     )
     logger.info(f"Turn 1 response: {turn1.get('result')}")
+
+    # Semantic extraction is asynchronous. Give AgentCore Memory time to write the
+    # /preferences/{actorId} record before testing a fresh session.
+    logger.info("Waiting 90 seconds for AgentCore semantic memory processing")
+    time.sleep(90)
 
     # Turn 2: recall the fact in a fresh session (long-term memory only)
     logger.info(f"Turn 2 (actor={actor_id}, session={session_2})")

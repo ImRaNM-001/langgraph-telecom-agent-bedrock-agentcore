@@ -8,10 +8,6 @@ __pycache__/
 .mypy_cache/
 logs/
 
-# AgentCore starter toolkit generated files
-.bedrock_agentcore.yaml
-.bedrock_agentcore/
-
 # Terraform
 terraform/.terraform/
 terraform/.terraform.lock.hcl

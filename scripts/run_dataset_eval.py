@@ -36,7 +36,8 @@ def main():
 
     results = []
     for row in rows:
-        session_id = f"{params.memory.default_session_prefix}-eval-{uuid.uuid4().hex[:8]}"
+        # session_id = f"{params.memory.default_session_prefix}-eval-{uuid.uuid4().hex[:8]}"
+        session_id = f"eval-{uuid.uuid4()}"
         payload = {"prompt": row["question"], "session_id": session_id}
         logger.info(f"Invoking: {row['question']}")
         response = client.invoke_agent_runtime(

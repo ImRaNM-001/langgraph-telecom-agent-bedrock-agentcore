@@ -1,7 +1,9 @@
 import uuid
 
-from langchain_core.messages import HumanMessage, AIMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
+from langgraph.config import get_config
+from langgraph.runtime import Runtime
 from langchain.agents.middleware import AgentMiddleware, AgentState
 from langgraph.store.base import BaseStore
 from langgraph_checkpoint_aws import AgentCoreMemorySaver, AgentCoreMemoryStore
@@ -30,65 +32,66 @@ def get_store() -> AgentCoreMemoryStore:
 
 
 class MemoryMiddleware(AgentMiddleware):
-    # Pre-model hook: saves messages and retrieves long-term memories
-    def pre_model_hook(self, state: AgentState, config: RunnableConfig, *, store: BaseStore):
-        """
-        Hook that runs before LLM invocation to:
-        1. Save the latest human message to long-term memory
-        2. Retrieve relevant user preferences and memories
-        3. Append memories to the context
-        """
-        actor_id = config["configurable"]["actor_id"]
-        thread_id = config["configurable"]["thread_id"]
+    """Persist conversation events and expose semantic memories to the model."""
 
-        # Namespace for this specific session
-        namespace = (actor_id, thread_id)
+    @staticmethod
+    def _identity() -> tuple[str, str]:
+        config: RunnableConfig = get_config()
+        configurable = config["configurable"]
+        return configurable["actor_id"], configurable["thread_id"]
+
+    @staticmethod
+    def _store(runtime: Runtime) -> BaseStore:
+        if runtime.store is None:
+            raise RuntimeError("AgentCore Memory store is not configured")
+        return runtime.store
+
+    def before_agent(self, state: AgentState, runtime: Runtime) -> dict | None:
+        """Save the user turn and add relevant cross-session facts to context."""
+        actor_id, thread_id = self._identity()
+        store = self._store(runtime)
         messages = state.get("messages", [])
 
-        # Save the last human message to long-term memory
-        for msg in reversed(messages):
-            if isinstance(msg, HumanMessage):
-                store.put(namespace, str(uuid.uuid4()), {"message": msg})
+        for message in reversed(messages):
+            if isinstance(message, HumanMessage):
+                store.put((actor_id, thread_id), str(uuid.uuid4()), {"message": message})
+                break
 
-                # OPTIONAL: Retrieve user preferences from long-term memory
-                # Search across all sessions for this actor
-                user_preferences_namespace = ("preferences", actor_id)
-                try:
-                    preferences = store.search(
-                        user_preferences_namespace,
-                        query=msg.content,
-                        limit=5
+        preferences = store.search(
+            ("preferences", actor_id),
+            query=messages[-1].content if messages else "user preferences",
+            limit=5,
+        )
+        if not preferences:
+            return None
+
+        logger.info("RAW MEMORY ITEMS: %r", preferences)
+        # memories = "\n".join(item.value["content"] for item in preferences)
+        memories = "\n".join(
+            item.value["content"]["text"] if isinstance(item.value.get("content"), dict)
+            else str(item.value.get("content", ""))
+            for item in preferences
+        )
+        logger.info("Retrieved %d semantic memory record(s) for actor %s", len(preferences), actor_id)
+        return {
+            "messages": [
+                SystemMessage(
+                    content=(
+                        "Relevant user memories from prior conversations:\n"
+                        f"{memories}\n"
+                        "Use these only when they help answer the user."
                     )
+                )
+            ]
+        }
 
-                    # If we found relevant memories, add them to the context
-                    if preferences:
-                        memory_context = "\n".join([
-                            f"Memory: {item.value.get('message', '')}"
-                            for item in preferences
-                        ])
-                        # You can append this to the messages or use it another way
-                        print(f"Retrieved memories: {memory_context}")
-                except Exception as e:
-                    print(f"Memory retrieval error: {e}")
-                break
+    def after_agent(self, state: AgentState, runtime: Runtime) -> None:
+        """Save the final assistant response as a conversational event."""
+        actor_id, thread_id = self._identity()
+        store = self._store(runtime)
 
-        return {"messages": messages}
-
-    # OPTIONAL: Post-model hook to save AI responses
-    def post_model_hook(state, config: RunnableConfig, *, store: BaseStore):
-        """
-        Hook that runs after LLM invocation to save AI messages to long-term memory
-        """
-        actor_id = config["configurable"]["actor_id"]
-        thread_id = config["configurable"]["thread_id"]
-        namespace = (actor_id, thread_id)
-
-        messages = state.get("messages", [])
-
-        # Save the last AI message
-        for msg in reversed(messages):
-            if isinstance(msg, AIMessage):
-                store.put(namespace, str(uuid.uuid4()), {"message": msg})
-                break
-
-        return state
+        for message in reversed(state.get("messages", [])):
+            if isinstance(message, AIMessage):
+                store.put((actor_id, thread_id), str(uuid.uuid4()), {"message": message})
+                return None
+        return None
